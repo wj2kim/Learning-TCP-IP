@@ -1,7 +1,6 @@
 # Learning-TCP-IP
 TCP/IP 에 관하여 
 
-# TCP / IP 소개
 
 # TCP/IP 란
 
