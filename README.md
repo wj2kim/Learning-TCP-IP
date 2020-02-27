@@ -336,3 +336,196 @@ TIME_WAIT에서 대기하는 시간은 2 MSL( Maximum Segement Lifetime) 으로 
 
 TIME_WAIT 상태에서 2MSL 만큼 시간이 지나면 요청자도 CLOSED 상태로 변경된다.
 
+
+# TCP의 헤더에는 어떤 정보들이 담겨있는 걸까?
+
+# TCP, Transmission Control Protocol
+
+TCP (Transmission Control Protocol ) 은 OSI 7계층 중 전송( transport ) 계층에서 사용되고 있는 프로토콜로, 장비들 간의 통신 과정에서 정보를 안정적으로, 순서대로, 에러없이 교환 할 수 있도록 하는 것에 목적을 둔 프로토콜이다.
+
+![https://s3-us-west-2.amazonaws.com/secure.notion-static.com/0db28e26-2f18-480d-b19b-c41733c58fb5/Untitled.png](https://s3-us-west-2.amazonaws.com/secure.notion-static.com/0db28e26-2f18-480d-b19b-c41733c58fb5/Untitled.png)
+
+이때 우리에게 친숙한 HTTP, SMTP, FTP 와 같은 프로토콜들이 가장 높은 계층인 응용 ( aaplication ) 계층에 위치한다. 그에 비해 더 낮은 계층에 존재하는 TCP, UDP, IP 같은 프로토콜들은 상대적으로 접할 일이 많이 없다. 
+
+이런 프로토콜들은 대부분 OS에서 알아서 처리해주기 때문에 상위 계층에서 프로그래밍을 하는 개발자가 굳이 여기서 일어나는 일까지 하나하나 신경 쓸 필요가 없기 때문이다. 
+
+애초에 이게 레이어 모델이 존재하는 이유 중 하나이다. 네트워크라는 것이 수만흥ㄴ 기술의 집약체인 만큼 한명의 개발자가 모든것을 다 알긴느 힘들다. 그래서 각 계층 간 철저한 역할 분담을 통해 어떤 작업을 할 때 신경써야 하는 범위를 좁혀주는 것이다. 
+
+덕분에 우리는 HTTP를 사용할 떄 DNS 는 어디를 사용할지, 패킷은 어떻게 처리할지 등 여러가지 작업을 한번에 신경쓸 필요가 없다. 
+
+하지만 아무리 레이어가 나누어져 있다고 한들, 하위 레이어에서 일어나느 일을 전혀 모르고 있다면, 어플리케이션 레이어에서는 아무문제 없겠지만 하위 레이어에서 문제가 발생 했을 때 전혀 손도 못대는 케이스가 발생 할 수 있다. 
+
+# TCP는 왜 만들어진걸까?
+
+TCP 는 1970년 냉전 당시 미 국방성이 개발하던 알파넷 프로젝트의 일부로 개발되었는데, 그 당시 알파넷을 연구할 때 관심을 가진 주제 중 하나가 바로 '핵전쟁이 나도 살아남는 네트워크' 였다. 
+
+왜냐하면 1970년대의 네트쿼는 회선 교환 방식을 사용하고 있었기 때문에 중계국이 폭격을 맞아서 박살나거나 중간에 연결된 선이 하나가 잘려나가면 그대로 통신이 끊어져 버렸기 떄문이다. 
+
+그래서 나온 아이디어가 바로 패킷 교환 방식이다. 데이터를 하나의 회선을 사용하여 보내다가 해당 회선이나 중계국이 박살나면 전송되던 데이터와도 영원히 이별하게 되니, 데이터를 잘게 쪼갠 후 여러 개의 회선을 통해 보내자는 것이다. 
+
+![https://s3-us-west-2.amazonaws.com/secure.notion-static.com/fd8249cb-28db-4e5e-ba1f-4e50d8d84ee1/Untitled.png](https://s3-us-west-2.amazonaws.com/secure.notion-static.com/fd8249cb-28db-4e5e-ba1f-4e50d8d84ee1/Untitled.png)
+
+이렇게 되면 노드 하나가 박살나더라도 모든 데이터가 유실되진 않을 것이다. 
+
+또한 하나의 회선을 잡아놓고 계속 통신하는 것이 아니라, 패킷에 목적지를 마킹 해놓고 그냥 보내기만 하면 되니, 회선의 사용 효율 또한 높아질 수 있다. 
+
+이런 이유로 미 국방성은 이 아이디어를 채택하여 알파넷에 적용했고, 패킷 교환 방식의 실용성을 증명했다. 
+
+이후 몇 개의 대학과 군에서만 사용되던 알파넷이 대중들에게 공개되고 전 세계적으로 연결되며 인터넷으로 발전하게 되었고, 덩달아 알파넷의 통신 프로토콜이었던 TCP도 함께 떡상 하게 된것이다. 
+
+# 패킷 교환 방식의 문제점
+
+하지만 패킷 교환 방식도 당연히 만능이 아니기에, 몇 가지 문제가 있다. TCP를 공부할 때 함께 따라오는 ARQ, SYN, ACK 등의 개념들이 바로 이런 문제들을 해결하기 위해 과거의 엔지니어들이 머리를 싸맨 결과이다. 
+
+Q: 전송 중간에 패킷이 쥐도새도 모르게 사라지거나 훼손되면 어떡해요?A: **그럼 그 패킷만 다시 보내라고 해!(ARQ)**
+
+Q: 송신 측이 패킷을 쪼갠 순서를 알아야 수신 측이 재조립할 수 있겠는데요?A: **그럼 순서번호를 패킷이랑 같이 보내!(시퀀스 번호)**
+
+Q: 수신 측이 처리할 수 있는 속도보다 송신 측이 패킷을 빠르게 보내버리면 어떡하죠?A: **그럼 수신 측이 처리할 수 있는 양을 송신 측에 알려주고 그 만큼만 보내라고 해! (슬라이딩 윈도우)**
+
+이런 기능들은 상대방이 보낸 세그먼트의 헤더에 들어있는 정보를 파악하여 작동하기 때문에, 이 기능들을 하나씩 알아보기 전에 TCP의 헤더에는 어떤 정보들이 들어있고, 이 정보들이 의미하는 것이 무엇인지 살펴보려고 한다. 
+
+# TCP의 헤더
+
+HTTP, TCP, IP 와 같은 프로토콜들은 각자 자신이 맡은 역할이 있고, 보내고자 하는 데이터에 자신의 헤더를 붙혀서 데이터의 정보를 표현한다. 
+
+TCP는 전송의 신뢰송과 흐름 제어, 혼잡 제어 등의 역할을 맡고 있는 프로토콜이기 때문에, TCP 헤더에도 이러한 기능을 사용하기 위한 여러가지 값들이 담겨있다. 
+
+![https://s3-us-west-2.amazonaws.com/secure.notion-static.com/3c0dfe8b-7554-4869-9be2-4e5f45665003/Untitled.png](https://s3-us-west-2.amazonaws.com/secure.notion-static.com/3c0dfe8b-7554-4869-9be2-4e5f45665003/Untitled.png)
+
+TCP는 여러 개의 필드로 나누어진 20bytes, 즉 160bits의 헤더를 사용하며, 각 필드의 비트를 0 또는 1로 변경하여 전송하고자 하는 세그먼트의 정보를 나타낸다. 
+
+하지만 20bytes는 아무런 옵션도 없는 기본적인 헤더 일 때의 용량이고 TCP의 여러가지 옵션들을 사용하면 헤더 맨 뒤에 옵션 필드들이 추가로 붙기 때문에 최대 40bytes가 더해진 60bytes까지도 사용 할 수 있다. 
+
+### Source port, Destination port
+
+![https://s3-us-west-2.amazonaws.com/secure.notion-static.com/9995058d-6b05-4e19-b089-03e5defb7f4b/Untitled.png](https://s3-us-west-2.amazonaws.com/secure.notion-static.com/9995058d-6b05-4e19-b089-03e5defb7f4b/Untitled.png)
+
+이 필드들은 세그먼트의 출발지와 목적지를 나타내는 필드로, 각각 16bits 를 할당 받는다, 이때 출발지와 목적지의 주소를 판별하기 위해서는 IP 주소 와 포트번호가 필요하다. 
+
+IP주소는 한 계층 밑인 네트워크 계층에 있는 IP의 헤더에 담기기 때문에, TCP 헤더에는 IP 주소를 나타내는 필드가 없고 포트를 나타내는 필드만 존재한다. 
+
+### Sequence Number
+
+![https://s3-us-west-2.amazonaws.com/secure.notion-static.com/376a8294-8d42-445e-a5c6-c42e109f1acd/Untitled.png](https://s3-us-west-2.amazonaws.com/secure.notion-static.com/376a8294-8d42-445e-a5c6-c42e109f1acd/Untitled.png)
+
+시퀀스 번호는 전송하는 데이터의 순서를 의미하며, 32 bits 를 할당 받는다. 최대 4,294,967,296 까지의 수를 담을 수 있기 때문에 시퀀스 번호가 쉽게 중복되지 않는다. 
+
+** 이 시퀀스 번호 덕분에, 수신자는 쪼개진 세그먼트의 순서를 파악하여 올바른 순서로 데이터를 재조립 할 수 있게 된다. 
+
+송신자가 최초로 데이터를 전송할 때는 이 번호를 랜덤한 수로 초기화 하며, 이후 자신이 보낼 데이터의 1bytes 당 시퀀스 번호 1씩 증가 시키며 데이터의 순서를 표현하다 4,294,967,296을 넘어갈 경우 다시 0부터 시작한다. 
+
+Acknowledgement Number
+
+![https://s3-us-west-2.amazonaws.com/secure.notion-static.com/e8eeff97-9280-47a3-a67f-0b603b800a82/Untitled.png](https://s3-us-west-2.amazonaws.com/secure.notion-static.com/e8eeff97-9280-47a3-a67f-0b603b800a82/Untitled.png)
+
+ 승인 번호는 데이터를 받은 수신자가 예상하는 다음 시퀀스 번호를 의미하며, 32 bits 를 할당 받는다. 연결 설정과 연결을 해제 할 때 발생하는 핸드쉐이크 과정에서는 상대방이 보낸 시퀀스 번호 + 1 로 자신의 승인 번호를 만들어 내지만, 실제로 데이터를 주고 받을 때는 상대방이 보낸 시퀀스 번호 + 자신이 받은 데이터의 bytes로 승인 번호를 만들어 낸다. 
+
+예를 들어 1MB 짜리 데이터를 전송한다고 생각하자면 이렇게 큰 데이터를 한번에 전송 할 수 는 없으므로, 송신자는 이 데이터를 여러개의 세그먼트로 쪼개서 조금씩 전송해야 한다. 이때 송신자가 한번에 전송 할수 있는 양은 네티워크나 수신자의 상태에 따라 가변적이지만 100bytes 라고 가정해보자. 
+
+송신자는 첫 전송에 100bytes 만큼만 데이터를 전송하며 시퀀스 번호를 0으로 초기화 한다. 시퀀스 번호는 1bytes 당 1씩 증가 하기 때문에 첫번 째 바이트 뭉치는 0, 두번째 바이트 뭉치는 1, 세번째 바이트 뭉치는 2 와 같은 순서대로 매겨질 것이다. 
+
+즉 이번 전송을 통해 수신자는 0~99 까지 총 100개의 바이트 뭉치를 받았고, 그 다음 전송 때 받아야 할 시퀀스 번호는 2가 아닌 100이 되는 것이다. 
+
+![https://s3-us-west-2.amazonaws.com/secure.notion-static.com/362e3d55-1982-46bc-aa0e-915179d9f60c/Untitled.png](https://s3-us-west-2.amazonaws.com/secure.notion-static.com/362e3d55-1982-46bc-aa0e-915179d9f60c/Untitled.png)
+
+즉 승인 번호는 다음에 보내줘야 하는 데이터의 시작점을 의미한다는 것을 알 수 있다. 
+
+### Data Offset
+
+![https://s3-us-west-2.amazonaws.com/secure.notion-static.com/8d151d14-a47e-4190-866d-3c5336020332/Untitled.png](https://s3-us-west-2.amazonaws.com/secure.notion-static.com/8d151d14-a47e-4190-866d-3c5336020332/Untitled.png)
+
+데이터 오프셋 필드에는 전체  세그먼트 중에서 헤더가 아닌 데이터가 시작되는 위치가 어디서 부터인지를 표시한다. 
+
+이 오프셋을 표기할 때는 32비트 워드 단위를 사용하여, 32비트 체계에서 1Word = 4 bytes를 의미한다. 즉 이 필드의 값에 4를 곱하면 세그먼트에서 헤더를 제외한 실제 데이터의 시작 위치를 알 수 있는 것이다. 
+
+이 필드에 할당된 4bits 로 표현 할 수 있는 값의 범위는 0000~1111, 즉 0 ~ 15 Word 이므로 기본적으로 0 ~ 60 bytes 의 오프셋까지 표현 할 수 있다. 하지만 옵션 필드를 제외한 나머지 필드는 필수로 존재해야하기 때문에 최소  값은 20bytes, 즉 5 Word 로 고정되어 있다. 
+
+이 필드가 필요한 이유는, 밑에서 설명할 옵션 (Option) 필드의 길이가 고정되어 있지 않기 때문이다.
+
+### Reserved (3bits)
+
+![https://s3-us-west-2.amazonaws.com/secure.notion-static.com/801c73b5-b35a-4605-a5e6-a713c9c64fb0/Untitled.png](https://s3-us-west-2.amazonaws.com/secure.notion-static.com/801c73b5-b35a-4605-a5e6-a713c9c64fb0/Untitled.png)
+
+미래를 위해 예약된 필드로, 모두 0으로 채워져야 한다. 상단의 헤더 그림에도 그냥 0 0 0 으로찍혀 있는 것을 확인해 볼 수 있다.
+
+### Flags (NS ~ FIN)
+
+![https://s3-us-west-2.amazonaws.com/secure.notion-static.com/820480b6-6588-488e-902d-fe62bf2274e8/Untitled.png](https://s3-us-west-2.amazonaws.com/secure.notion-static.com/820480b6-6588-488e-902d-fe62bf2274e8/Untitled.png)
+
+9개의 비트 플래그 이다. 이 플래그들은 현재 세그먼트의 속성을 나타낸다. 기존에는 6개의 플래그만을 사용했지만, 혼잡 제어 기능의 향상을 위해 Reserved 필드를 사용하여 NS, CWR, ECE 플래그가 추가 되었다. 
+
+먼저 기존에 존재하던 플래그들의 의미는 다음과 같다.
+
+[Untitled](https://www.notion.so/4f4a4821500f45598a700205c5c1fc18)
+
+ECN을 사용하지 않던 기존의 네트워크 혼잡 상황 인지 방법은 타임아웃을 이용한 방법이었다. 그러나 처리 속도에 민감한 어플리케이션에서는 이런 대기 시간 조차 아깝기 때문에, 송신자와 수신자에게 네트워크의 혼잡 상황을 명시적으로 알리기 위한 특별한 매커니즘이 필요하게 되었는데, 이것이 바로 `ECN`이다.
+
+이때 `CWR`, `ECE`, `ECT`, `CE` 플래그를 사용하여 상대방에게 혼잡 상태를 알려줄 수 있는데, 이 중 `CWR`, `ECE`는 TCP 헤더에 존재하고 `ECT`, `CE`는 IP 헤더에 존재한다.
+
+[Untitled](https://www.notion.so/d94eec12c7704a8eb178542184f75318)
+
+### Window Size
+
+![https://s3-us-west-2.amazonaws.com/secure.notion-static.com/c5aeac8c-a082-4ac4-96b8-ee15b05a07e0/Untitled.png](https://s3-us-west-2.amazonaws.com/secure.notion-static.com/c5aeac8c-a082-4ac4-96b8-ee15b05a07e0/Untitled.png)
+
+윈도우 사이즈 필드에는 한번에 전송할 수 있는 데이터의 양을 의미하는 값을 담는다. 216=65535216=65535 만큼의 값을 표현할 수 있고 단위는 바이트이므로, 윈도우의 최대 크기는 `64KB`라는 말이 된다.
+
+하지만 이 최대 크기는 옛날 옛적에 생긴 기준이라 요즘같이 대용량 고속 통신 환경에는 맞지 않는 경우도 있다. 그래서 비트를 왼쪽으로 시프트하는 방식으로 윈도우 사이즈의 최대 크기를 키울 수 있는 방식도 사용하고 있으며, 몇 번 시프트할 지는 옵션 필드의 `WSCALE` 필드를 사용하여 표기한다.
+
+### CheckSum
+
+![https://s3-us-west-2.amazonaws.com/secure.notion-static.com/641f7511-f715-4caf-b585-873a721af48d/Untitled.png](https://s3-us-west-2.amazonaws.com/secure.notion-static.com/641f7511-f715-4caf-b585-873a721af48d/Untitled.png)
+
+체크섬은 데이터를 송신하는 중에 발생할 수 있는 오류를 검출하기 위한 값이다. 
+
+TCP의 체크섬은 전송할 데이터를 16Bits씩 나눠서 차례대로 더해가는 방법으로 생성한다. 방식은 단순하지만 16bits의 덧셈을 그대로 보자니 숫자가 너무 길어질 것이 뻔함으로 간단하게 반토막인 8bits 로 설명 해보겠다. 
+
+    	11010101
+    + 10110100
+    -----------
+     110001001
+
+앗, 8 bits인 두 수를 더 했더니 자리 수가 하나 올라가서 9 bits가 되었다. 이렇게 자리 수가 넘쳐버리면 체크섬 필드에 담을 수 없다.
+
+이렇게 두 개의 수를 더했을 때 자리 수가 하나 올라간 부분을 `캐리(Carry)`라고 하는데, 계산 결과에서 이 부분만 떼어내서 다시 계산 결과에 더해주면 된다.
+
+    	 10001001
+    +         1 ( 방금 위에서 넘친 부분 )
+    ------------
+       10001010
+
+이런 방식을 Warp Around라고 한다. 이제 마지막 계산 결과에 1의 보수를 취해주면 체크섬이 된다. 1의 보수라고 하면 뭐지 싶겠지만 그냥 비트를 반전하면 된다.
+
+    10001010
+    01110101 ( 1의 보수를 취한 모습 )
+
+이제 `01110101`이 이 데이터의 체크섬이 되는 것이다. 이 예제에서는 8 bits를 가지고 진행했기 때문에 8 bits짜리 체크섬이 나왔지만, 실제로는 16 bits 단위로 데이터를 잘라서 이 과정을 진행하기 때문에 16 bits인 체크섬 필드에 딱 들어맞는 이쁜 값이 나온다.
+
+수신 측은 데이터를 받으면 위의 과정을 동일하게 거치되 1의 보수를 취하지 않은 값인 `10001010`까지만 만든 다음, 이 값과 송신 측이 보낸 체크섬을 더해서 모든 비트가 1이라면 이 데이터가 정상이라고 판단할 수 있다.
+
+    	10001010
+    + 01110101
+    -----------
+      11111111
+
+만약 이 값에 0이 하나라도 있으면 송신 측이 보낸 데이터에 뭔가 변조가 있었음을 알 수 있다.
+
+### **Urgent Pointer**
+
+![https://evan-moon.github.io/2019/11/10/header-of-tcp/header-urgent.png](https://evan-moon.github.io/2019/11/10/header-of-tcp/header-urgent.png)
+
+말 그대로 긴급 포인터이다. URG 플래그가 1이라면 수신 측은 이 포인터가 가르키고 있는 데이터를 우선 처리한다.
+
+### Options
+
+![https://s3-us-west-2.amazonaws.com/secure.notion-static.com/5303b10d-d0ea-4fd0-987c-121a64ed71ea/Untitled.png](https://s3-us-west-2.amazonaws.com/secure.notion-static.com/5303b10d-d0ea-4fd0-987c-121a64ed71ea/Untitled.png)
+
+옵션 필드는 TCP의 기능을 확장할 때 사용하는 필드들이며, 이 필드는 크기가 고정된 것이 아니라 가변적이다. 그래서 수신 측이 어디까지가 헤더고 어디서부터 데이터인지 알기 위해 위에서 설명한 데이터 오프셋 필드를 사용하는 것이다.
+
+데이터 오프셋 필드는 `20 ~ 60 bytes`의 값을 표현할 수 있다고 했는데, 아무런 옵션도 사용하지 않은 헤더의 길이, 즉 Source Port 필드부터 Urgent Pointer 필드까지의 길이가 `20 bytes`이고, 옵션을 모두 사용했을 때 옵션 필드의 최대 길이가 `40 bytes`이기 때문이다.
+
+만약 데이터 오프셋 필드의 값이 5, 즉 20 bytes보다 크지만 TCP의 옵션을 하나도 사용하고 있지 않다면, 초과한 bytes 만큼 이 필드를 0으로 채워줘야 수신 측이 헤더의 크기를 올바르게 측정할 수 있다.
+
+대표적인 옵션으로는 윈도우 사이즈의 최대 값 표현을 확장할 수 있는 `WSCALE`, Selective Repeat 방식을 사용하기 위한 `SACK` 등이 있으며, 이외에도 거의 30개 정도의 옵션을 사용할 수 있기 때문에 이 친구들을 하나하나 설명하는 것은 조금 힘들 것 같다.
+
