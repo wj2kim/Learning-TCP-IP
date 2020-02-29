@@ -529,3 +529,24 @@ TCP의 체크섬은 전송할 데이터를 16Bits씩 나눠서 차례대로 더�
 
 대표적인 옵션으로는 윈도우 사이즈의 최대 값 표현을 확장할 수 있는 `WSCALE`, Selective Repeat 방식을 사용하기 위한 `SACK` 등이 있으며, 이외에도 거의 30개 정도의 옵션을 사용할 수 있기 때문에 이 친구들을 하나하나 설명하는 것은 조금 힘들 것 같다.
 
+# 소켓이란?
+
+네트워크 프로그래밍에서의 소켓(Socket)은 프로그램이 네트워크에서 데이터를 송수신할 수 있도록, "네트워크 환경에 연결할 수 있게 만들어진 연결부"가 바로 "네트워크 소켓(Socket)"입니다.
+
+하지만 엄밀히 따지자면, "네트워크 소켓"이라는 용어가 정확한 표현은 아닙니다. 전기 소켓이 전기를 공급받기 위해 정해진 규격(110V, 220V 등)에 맞게 만들어져야 하듯, 네트워크에 연결하기 위한 소켓 또한 정해진 규약, 즉, 통신을 위한 프로토콜(Protocol)에 맞게 만들어져야 합니다. 보통 OSI 7 Layer(Open System Interconnection 7 Layer)의 네 번째 계층인 TCP(Transport Control Protocol) 상에서 동작하는 소켓을 주로 사용하는데, 이를 "TCP 소켓" 또는 "TCP/IP 소켓"이라고 부릅니다. (UDP에서 동작하는 소켓은 "UDP 소켓"이라고 합니다.)
+
+# TCP/IP 소켓프로그래밍
+
+### 클라이언트 소켓(Client Socket)과 서버 소켓(Server Socket)
+
+두 개의 시스템(또는 프로세스)이 소켓을 통해 네트워크 연결(Connection)을 만들기 위해서는, 최초 어느 한 곳에서 그 대상이 되는 곳으로 연결을 요청해야 합니다.
+
+두 개의 시스템(또는 프로세스)이 소켓을 통해 데이터 통신을 위한 연결(Connection)을 만들기 위해서는, 연결 요청을 보내는지 또는 요청을 받아들이는지에 따라 소켓의 역할이 나뉘게 되는데, 전자에 사용되는 소켓을 클라이언트 소켓(Client Socket), 후자에 사용되는 소켓을 서버 소켓(Server Socket)이라고 합니다.
+
+### 소켓 API(Socket API) 실행 흐름.
+
+클라이언트 소켓(Client Socket)은 처음 소켓(Socket)을 [1]생성(create)한 다음, 서버 측에 [2]연결(connect)을 요청합니다. 그리고 서버 소켓에서 연결이 받아들여지면 데이터를 [3]송수신(send/recv)하고, 모든 처리가 완료되면 소켓(Socket)을 [4]닫습니다(close).
+
+서버 소켓(Server Socket)은 처리 과정이 조금 복잡합니다. 일단 클라이언트와 마찬가지로, 첫 번째 단계는 소켓(Socket)을 [1]생성(create)하는 것입니다. 그리고 서버 소켓이 해야 할 두 번째 작업은, 서버가 사용할 IP 주소와 포트 번호를 생성한 소켓에 [2]결합(bind)시키는 것입니다. 그런 다음 클라이언트로부터 연결 요청이 수신되는지 [3]주시(listen)하고, 요청이 수신되면 요청을 [4]받아들여(accept) 데이터 통신을 위한 소켓을 생성합니다. 일단 새로운 소켓을 통해 연결이 수립(ESTABLISHED)되면, 클라이언트와 마찬가지로 데이터를 [5]송수신(send/recv)할 수 있습니다. 마지막으로 데이터 송수신이 완료되면, 소켓(Socket)을 [6]닫습니다(close).
+
+![https://s3-us-west-2.amazonaws.com/secure.notion-static.com/d86d29fe-27b4-4d8e-a40c-bbd2377edcfc/Untitled.png](https://s3-us-west-2.amazonaws.com/secure.notion-static.com/d86d29fe-27b4-4d8e-a40c-bbd2377edcfc/Untitled.png)
