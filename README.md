@@ -748,3 +748,15 @@ Text 데이터타입은 데잍터를 ASCII, Unicode 등의 Text로 처리하여 
 2. 파싱 속도가 느립니다.
 3. 확장성이 높은 대신 이로 인해 프로토콜 정의를 따르지 않는 구현 사례가 나올 수 있습니다.
 4. 운영체제에 따라 줄바꿈의 문자를 2byte로 저장하기때문에
+
+## 소켓 옵션 
+SO_REUSEADDR	BOOL	이미 사용된 주소를 재사용하도록 함
+SO_RCV_BUF	int	수신용 버퍼의 크기 지정
+SO_SND_BUF	int	송신용 버퍼의 크기 지정
+SO_RECVTIMEO	DWORD(timeval)	수신시 Blocking 제한 시간을 설정
+SO_SNDTIMEO	DWORD(timeval)	송신시 Blocking 제한 시간을 설정
+SO_KEEPALIVE	BOOL	TCP 통신에서만 유효. 일정 시간마다 연결 유지 상태를 체크.
+SO_LINGER	struct LINGER	소켓을 닫을 때 남은 데이터의 처리 규칙 지정
+SO_DONTLINGER	BOOL	소켓을 닫을때 남은 데이터를 보내기 위해서 블럭되지 않도록 함
+SO_DONTROUTE	BOOL	라우팅(Routing)하지 않고 직접 인터페이스로 전송
+SO_BROADCAST	BOOL	브로드캐스트 사용 가능 여부
